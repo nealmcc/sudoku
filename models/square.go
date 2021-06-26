@@ -65,6 +65,20 @@ func (sq Square) Exclude(others ...int) Square {
 	return sq
 }
 
+// ExcludeDefined refines the value of the given square, by excluding
+// any definite squares from the given group.
+func (sq Square) ExcludeDefined(group []Square) Square {
+	for _, other := range group {
+		if sq.IsDefined() {
+			break
+		}
+		if other.IsDefined() {
+			sq = sq &^ other
+		}
+	}
+	return sq
+}
+
 // Display returns the display character for this square.
 // For squares which are defined, we return their digit.
 // For squares which are uncertain, we return ' '

@@ -1,6 +1,9 @@
 package models
 
-import "errors"
+import (
+	"errors"
+	"strings"
+)
 
 type Grid struct {
 	squares *[81]Square
@@ -32,4 +35,45 @@ func NewGrid(start string) (Grid, error) {
 		return Grid{}, errors.New("the grid must have 81 squares")
 	}
 	return g, nil
+}
+
+func (g Grid) String() string {
+	var b strings.Builder
+	b.WriteString("╔═══╤═══╤═══╗\n")
+	i := 0
+	for x := 0; x < 3; x++ {
+		writeRow(&b, g.squares[i:i+9])
+		b.WriteByte('\n')
+		i += 9
+	}
+	b.WriteString("╟───┼───┼───╢\n")
+	for x := 0; x < 3; x++ {
+		writeRow(&b, g.squares[i:i+9])
+		b.WriteByte('\n')
+		i += 9
+	}
+	b.WriteString("╟───┼───┼───╢\n")
+	for x := 0; x < 3; x++ {
+		writeRow(&b, g.squares[i:i+9])
+		b.WriteByte('\n')
+		i += 9
+	}
+	b.WriteString("╚═══╧═══╧═══╝")
+	return b.String()
+}
+
+func writeRow(b *strings.Builder, row []Square) {
+	b.WriteRune('║')
+	for i := 0; i < 3; i++ {
+		b.WriteByte(row[i].Digit())
+	}
+	b.WriteRune('│')
+	for i := 3; i < 6; i++ {
+		b.WriteByte(row[i].Digit())
+	}
+	b.WriteRune('│')
+	for i := 6; i < 9; i++ {
+		b.WriteByte(row[i].Digit())
+	}
+	b.WriteRune('║')
 }

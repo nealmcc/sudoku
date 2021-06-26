@@ -64,3 +64,21 @@ func (sq Square) Exclude(others ...int) Square {
 	}
 	return sq
 }
+
+// Digit returns the display value for this square if it is definitely known.
+// For squares which are uncertain, we return ' '
+// for squares which are impossible, we return '!'
+func (sq Square) Digit() byte {
+	if sq.IsSingle() {
+		var exp byte
+		for sq > 0 {
+			sq >>= 1
+			exp++
+		}
+		return '0' + exp
+	}
+	if sq == none {
+		return '!'
+	}
+	return ' '
+}

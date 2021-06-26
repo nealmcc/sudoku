@@ -11,6 +11,7 @@ var newgridcases = []struct {
 	in          string
 	want        [81]Square
 	expectedErr error
+	display     string
 }{
 	{
 		name: "a filled grid",
@@ -41,6 +42,19 @@ var newgridcases = []struct {
 			seven, six, three, four, one, eight, two, five, nine,
 		},
 		expectedErr: nil,
+		display: `╔═══╤═══╤═══╗
+║435│269│781║
+║682│571│493║
+║197│834│562║
+╟───┼───┼───╢
+║826│195│347║
+║374│682│915║
+║951│743│628║
+╟───┼───┼───╢
+║519│326│874║
+║248│957│136║
+║763│418│259║
+╚═══╧═══╧═══╝`,
 	},
 }
 
@@ -69,5 +83,19 @@ func BenchmarkNewGrid(b *testing.B) {
 		for _, tc := range newgridcases {
 			NewGrid(tc.in)
 		}
+	}
+}
+
+func TestString(t *testing.T) {
+	for _, tc := range newgridcases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if tc.expectedErr != nil {
+				return
+			}
+			grid, _ := NewGrid(tc.in)
+			require.Equal(t, tc.display, grid.String())
+		})
 	}
 }

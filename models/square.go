@@ -39,9 +39,9 @@ func (sq Square) Values() []int {
 	return vals
 }
 
-// IsSingle is used to determine if a square has exactly one value.
-// if sq.IsSingle() is true, then len(sq.Values) == 1 and vice versa.
-func (sq Square) IsSingle() bool {
+// IsDefined is used to determine if a square has exactly one value.
+// if sq.IsDefined() is true, then len(sq.Values) == 1 and vice versa.
+func (sq Square) IsDefined() bool {
 	return sq != 0 && sq&(sq-1) == 0
 }
 
@@ -65,11 +65,12 @@ func (sq Square) Exclude(others ...int) Square {
 	return sq
 }
 
-// Digit returns the display value for this square if it is definitely known.
+// Display returns the display character for this square.
+// For squares which are defined, we return their digit.
 // For squares which are uncertain, we return ' '
 // for squares which are impossible, we return '!'
-func (sq Square) Digit() byte {
-	if sq.IsSingle() {
+func (sq Square) Display() byte {
+	if sq.IsDefined() {
 		var exp byte
 		for sq > 0 {
 			sq >>= 1

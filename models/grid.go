@@ -65,15 +65,15 @@ func (g Grid) String() string {
 func writeRow(b *strings.Builder, row []Square) {
 	b.WriteRune('║')
 	for i := 0; i < 3; i++ {
-		b.WriteByte(row[i].Digit())
+		b.WriteByte(row[i].Display())
 	}
 	b.WriteRune('│')
 	for i := 3; i < 6; i++ {
-		b.WriteByte(row[i].Digit())
+		b.WriteByte(row[i].Display())
 	}
 	b.WriteRune('│')
 	for i := 6; i < 9; i++ {
-		b.WriteByte(row[i].Digit())
+		b.WriteByte(row[i].Display())
 	}
 	b.WriteRune('║')
 }

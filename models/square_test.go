@@ -165,7 +165,7 @@ func TestSquareIsSingle(t *testing.T) {
 			t.Parallel()
 			r := require.New(t)
 
-			got := tc.in.IsSingle()
+			got := tc.in.IsDefined()
 
 			r.Exactly(tc.want, got)
 		})

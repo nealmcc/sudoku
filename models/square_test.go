@@ -9,7 +9,7 @@ import (
 func TestSquareEqual(t *testing.T) {
 	tt := []struct {
 		name string
-		a, b square
+		a, b Square
 	}{
 		{"One", one, 0x01},
 		{"Two", two, 0x02},
@@ -37,7 +37,7 @@ func TestSquareEqual(t *testing.T) {
 func TestSquareValues(t *testing.T) {
 	tt := []struct {
 		name string
-		in   square
+		in   Square
 		want []int
 	}{
 		{
@@ -79,9 +79,9 @@ func TestSquareValues(t *testing.T) {
 func TestSquareExclude(t *testing.T) {
 	tt := []struct {
 		name   string
-		in     square
+		in     Square
 		others []int
-		want   square
+		want   Square
 	}{
 		{
 			name:   "Not 4,5,6",
@@ -108,9 +108,9 @@ func TestSquareExclude(t *testing.T) {
 func TestSquareInclude(t *testing.T) {
 	tt := []struct {
 		name   string
-		in     square
+		in     Square
 		others []int
-		want   square
+		want   Square
 	}{
 		{
 			name:   "None + 4,5,6",
@@ -142,7 +142,7 @@ func TestSquareInclude(t *testing.T) {
 func TestSquareIsSingle(t *testing.T) {
 	tt := []struct {
 		name string
-		in   square
+		in   Square
 		want bool
 	}{
 		{"one", one, true},

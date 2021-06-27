@@ -269,7 +269,6 @@ func TestRefine(t *testing.T) {
 				}
 				numLoops++
 			}
-			t.Logf("after %d loops:\n%s\n%s\n", numLoops, grid, grid.genSquaresData())
 			want := rebuildSquares(tc.want)
 			require.Equal(t, *want, *grid.squares)
 		})

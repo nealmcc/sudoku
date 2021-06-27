@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -256,16 +255,4 @@ func (g Grid) getBlockSquares(n int) []Square {
 		}
 	}
 	return block
-}
-
-func (g Grid) genSquaresData() string {
-	var b strings.Builder
-	for i := 0; i < 81; i += 9 {
-		row := g.squares[i : i+9]
-		for _, sq := range row {
-			fmt.Fprintf(&b, "%#v,", sq.Values())
-		}
-		b.WriteByte('\n')
-	}
-	return b.String()
 }

@@ -30,13 +30,13 @@ func main() {
 			log.Fatal(fmt.Errorf("error reading input: %w", err))
 		}
 		sudoku := models.NewGrid(s.Bytes())
-		unsolved := sudoku.String()
-		_, guesses, backtracks := solve(&sudoku, 0)
-		fmt.Printf("solved puzzle %d with %d guesses and %d backtracks:\n",
-			i, guesses, backtracks)
-		fmt.Println(unsolved)
-		fmt.Println(sudoku)
-		fmt.Println()
+		// unsolved := sudoku.String()
+		// _, guesses, backtracks := solve(&sudoku, 0)
+		solve(&sudoku, 0)
+		// fmt.Printf("solved puzzle %d with %d guesses and %d backtracks:\n", i, guesses, backtracks)
+		// fmt.Println(unsolved)
+		// fmt.Println(sudoku)
+		// fmt.Println()
 		i++
 	}
 
@@ -45,7 +45,7 @@ func main() {
 	}
 
 	duration := time.Since(start)
-	fmt.Printf("solved %d 17-input sudokus in %s\n", i, duration)
+	fmt.Printf("solved %d sudokus in %s\n", i, duration)
 }
 
 // solve recursively solves a sudoku grid, returning true when it is solved,

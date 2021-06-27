@@ -17,7 +17,7 @@ const (
 	none Square = 0
 )
 
-var squares = [10]Square{
+var squareEnum = [10]Square{
 	any, one, two, three, four, five, six, seven, eight, nine,
 }
 
@@ -25,7 +25,7 @@ var squares = [10]Square{
 // The values 1-9 will return a square that can only be that value.
 // If 0 is given, then the square could be any of 1-9
 func NewSquare(n int) Square {
-	return squares[n]
+	return squareEnum[n]
 }
 
 // Values returns all the potential values that this square could hold
@@ -50,7 +50,7 @@ func (sq Square) IsDefined() bool {
 // any empty squares in that row.
 func (sq Square) Include(others ...int) Square {
 	for _, n := range others {
-		sq = sq | squares[n]
+		sq = sq | squareEnum[n]
 	}
 	return sq
 }
@@ -60,7 +60,7 @@ func (sq Square) Include(others ...int) Square {
 // this square's possible values.
 func (sq Square) Exclude(others ...int) Square {
 	for _, n := range others {
-		sq = sq & ^squares[n]
+		sq = sq & ^squareEnum[n]
 	}
 	return sq
 }
@@ -96,4 +96,34 @@ func (sq Square) Display() byte {
 		return '!'
 	}
 	return ' '
+}
+
+// Missing finds the set of values which are not possible in the given group,
+func Missing(group []Square) Square {
+	notFound := none
+	for i := 1; i <= 9; i++ {
+		needle, found := squareEnum[i], false
+		for _, sq := range group {
+			if sq&needle > 0 {
+				found = true
+				break
+			}
+		}
+		if !found {
+			notFound |= needle
+		}
+	}
+	return notFound
+}
+
+// Intersect finds the set intersection of all of the given squares
+func Intersect(group ...Square) Square {
+	if len(group) == 0 {
+		return none
+	}
+	sq := group[0]
+	for i := 1; i < len(group); i++ {
+		sq &= group[i]
+	}
+	return sq
 }

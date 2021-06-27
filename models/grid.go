@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"strings"
 )
 
@@ -36,9 +37,7 @@ func NewGrid(in []byte) Grid {
 // Clone creates a deep copy of this Grid
 func (g Grid) Clone() *Grid {
 	sq := new([81]Square)
-	for i := 0; i < 81; i++ {
-		sq[i] = g.squares[i]
-	}
+	copy(sq[:], g.squares[:])
 	return &Grid{sq}
 }
 
@@ -87,11 +86,11 @@ func (g Grid) Get(i int) Square {
 	return g.squares[i]
 }
 
-// CanSet checks to see if it is legal to set square i to the value k
+// CanSet checks to see if it is legal to set square i to the given value.
 // This function is only valid if the grid has been Reduced, and has not
 // been added to since.
-func (g Grid) CanSet(i, k int) bool {
-	curr, next := g.squares[i], squareEnum[k]
+func (g Grid) CanSet(i, val int) bool {
+	curr, next := g.squares[i], squareEnum[val]
 	return curr&next > 0
 }
 
@@ -101,78 +100,116 @@ func (g Grid) Set(i, k int) {
 	g.squares[i] = squareEnum[k]
 }
 
-// Reduce repeatedly applies  to the grid, identifying possible and impossible
-// values for each square.
-func (g Grid) Reduce() {
+// Normalize applies logic to the grid, identifying possible and impossible
+// values for each square without using trial and error.
+// Returns an error if the grid is invalid.
+func (g Grid) Normalize() error {
 	for {
 		delta := 0
-		ids := g.reduceByNegation()
+
+		ids, err := g.reduce()
+		if err != nil {
+			return err
+		}
 		delta += len(ids)
 
-		ids = g.reduceByDeduction()
+		ids, err = g.deduce()
+		if err != nil {
+			return err
+		}
 		delta += len(ids)
 
 		if delta == 0 {
 			break
 		}
 	}
+	return nil
 }
 
-// reduceByNegation performs one round of refinement based on the process of
+// reduce performs one round of refinement based on the process of
 // set subtraction.  That is, the process of excluding from each square the
 // values that are definitely assigned within the same row, column or block.
-// Returns a list of squares that are now defined that weren't before.
-func (g Grid) reduceByNegation() []int {
+// Returns a list of square indices that are now defined that weren't before.
+// Returns an error if any square has been reduced to the point where it cannot
+// be any possible value.
+func (g Grid) reduce() ([]int, error) {
 	newlyDefined := make([]int, 0, 8)
 	for i := 0; i < 81; i++ {
-		if g.squares[i].IsDefined() {
-			continue
+		didUpdate, err := g.reduceSquare(i)
+		if err != nil {
+			return nil, err
 		}
-		if g.negateOthers(i) {
+		if didUpdate {
 			newlyDefined = append(newlyDefined, i)
 		}
 	}
-	return newlyDefined
+	return newlyDefined, nil
 }
 
-// negateOthers refines the the nth square for this grid by excluding values
-// which would conflict with others in the same row, column, or 3x3 block.
-// returns true if the is now defined and wasn't before.
-func (g Grid) negateOthers(n int) bool {
+// reduceSquare refines the nth square for this grid by excluding candidate
+// values are already defined in the same row, column, or 3x3 block.
+// returns true if the square is now defined and wasn't before.
+func (g Grid) reduceSquare(n int) (bool, error) {
+	if g.squares[n].IsDefined() {
+		return false, nil
+	}
 	var (
 		row   = g.getRow(n)
 		col   = g.getCol(n)
 		block = g.getBlock(n)
 	)
-	sq := g.squares[n].
-		ExcludeDefined(row).
-		ExcludeDefined(col).
-		ExcludeDefined(block)
+	sq := g.squares[n]
+	sq = excludeDefined(sq, row)
+	sq = excludeDefined(sq, col)
+	sq = excludeDefined(sq, block)
+
+	if sq == none {
+		return false, errors.New("no possible value for this square")
+	}
+
 	g.squares[n] = sq
-	return sq.IsDefined()
+	return sq.IsDefined(), nil
 }
 
-// reduceByDeduction performs one round of refinement based on the process of
-// deduction.  That is, the process of setting a square if it is the ONLY
+// excludeDefined refines the set of values of the given square
+// by any strongly defined squares in the group
+func excludeDefined(sq Square, others []Square) Square {
+	for _, other := range others {
+		if other.IsDefined() {
+			sq = sq &^ other
+		}
+	}
+	return sq
+}
+
+// deduce performs one round of refinement based on the process of deduction.
+// That is, the process of setting a square if it is the ONLY
 // square in its row/column/block which can have a particular value.
-// Returns a list of squares that are now defined that weren't before.
-func (g Grid) reduceByDeduction() []int {
+// Returns a list of square indices that are now defined that weren't before.
+// If there is more than one value which a square *must* be, then
+// we return an error
+func (g Grid) deduce() ([]int, error) {
 	newlyDefined := make([]int, 0, 8)
 	for i := 0; i < 81; i++ {
-		isFound := g.deduceSquare(i)
+		isFound, err := g.deduceSquare(i)
+		if err != nil {
+			return nil, err
+		}
 		if isFound {
 			newlyDefined = append(newlyDefined, i)
 		}
 	}
-	return newlyDefined
+	return newlyDefined, nil
 }
 
 // deduceSquare is used to detect cases where there is some value that
 // no other square in the row / column / block can possibly be.
 // Returns true if the square is now defined and wasn't before.
-func (g Grid) deduceSquare(n int) bool {
+// Returns an error if this square would need to have more than one value
+// to satisfy the row / column / block requirements.
+func (g Grid) deduceSquare(n int) (bool, error) {
 	if g.squares[n].IsDefined() {
-		return false
+		return false, nil
 	}
 	var (
 		row   = g.getRow(n)
@@ -180,25 +217,50 @@ func (g Grid) deduceSquare(n int) bool {
 		block = g.getBlock(n)
 	)
 
-	need := Missing(row...)
-	if need.IsDefined() {
+	need, err := findMissing(row)
+	if err != nil {
+		return false, err
+	}
+	if need != none {
 		g.squares[n] = need
-		return true
+		return true, nil
 	}
 
-	need = Missing(col...)
-	if need.IsDefined() {
+	need, err = findMissing(col)
+	if err != nil {
+		return false, err
+	}
+	if need != none {
 		g.squares[n] = need
-		return true
+		return true, nil
 	}
 
-	need = Missing(block...)
-	if need.IsDefined() {
+	need, err = findMissing(block)
+	if err != nil {
+		return false, err
+	}
+	if need != none {
 		g.squares[n] = need
-		return true
+		return true, nil
 	}
 
-	return false
+	return false, nil
+}
+
+// findMissing looks for a single value which none of the given squares can be.
+// Returns an error if there is more than one value missing.
+func findMissing(group []Square) (Square, error) {
+	exists := none
+	for _, sq := range group {
+		exists |= sq
+	}
+	notExists := any &^ exists
+
+	if notExists != none && !notExists.IsDefined() {
+		return notExists, errors.New("more than one value is missing")
+	}
+
+	return notExists, nil
 }
 
 // getRow gets the other squares from the same row as the square at index n.

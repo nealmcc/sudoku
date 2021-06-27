@@ -173,7 +173,7 @@ func TestRefineOne(t *testing.T) {
 			t.Parallel()
 			r := require.New(t)
 
-			tc.grid.negateOthers(tc.n)
+			tc.grid.reduceSquare(tc.n)
 
 			got := tc.grid.squares[tc.n]
 			r.Equal(tc.want, got)
@@ -184,7 +184,7 @@ func TestRefineOne(t *testing.T) {
 func BenchmarkRefineOne(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		for _, tc := range casesRefineOne {
-			tc.grid.negateOthers(tc.n)
+			tc.grid.reduceSquare(tc.n)
 		}
 	}
 }
@@ -259,9 +259,11 @@ func TestRefine(t *testing.T) {
 			numLoops := 0
 			for {
 				numChanges := 0
-				changes := grid.reduceByNegation()
+				changes, err := grid.reduce()
+				require.NoError(t, err)
 				numChanges += len(changes)
-				changes = grid.reduceByDeduction()
+				changes, err = grid.deduce()
+				require.NoError(t, err)
 				numChanges += len(changes)
 				if numChanges == 0 {
 					break
@@ -303,7 +305,8 @@ func TestDeduceOne(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			grid := Grid{rebuildSquares(tc.grid)}
-			got := grid.deduceSquare(tc.n)
+			got, err := grid.deduceSquare(tc.n)
+			require.NoError(t, err)
 			assert.Equal(t, tc.didChange, got)
 		})
 	}

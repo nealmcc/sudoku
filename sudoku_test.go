@@ -121,15 +121,44 @@ var cases_solve = []struct {
 971 253 684
 `,
 	},
+	{
+		name: "requires backtracking",
+		in: `
+			1.. 9.7 ..3
+			.8. ... .7.
+			..9 ... 6..
+
+			..7 2.9 4..
+			41. ... .95
+			..8 5.4 3..
+
+			..3 ... 7..
+			.5. ... .4.
+			2.. 8.6 ..9`,
+		want: `164 957 283
+385 621 974
+729 438 651
+
+537 289 416
+412 763 895
+698 514 327
+
+843 195 762
+956 372 148
+271 846 539
+`,
+	},
 }
 
 func TestSolve(t *testing.T) {
 	for _, tc := range cases_solve {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+			// t.Parallel()
 			grid := models.NewGrid([]byte(tc.in))
-			solve(&grid, 0)
+			done, n := solve(&grid)
+			assert.Equal(t, true, done)
+			t.Log(n, "backtracks")
 			assert.Equal(t, tc.want, grid.String())
 		})
 	}
@@ -139,7 +168,7 @@ func BenchmarkSolve(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		for _, tc := range cases_solve {
 			g := models.NewGrid([]byte(tc.in))
-			solve(&g, 0)
+			solve(&g)
 		}
 	}
 }

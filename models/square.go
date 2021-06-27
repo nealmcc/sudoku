@@ -63,35 +63,3 @@ func (sq Square) Values() []int {
 func (sq Square) IsDefined() bool {
 	return sq != 0 && sq&(sq-1) == 0
 }
-
-// ExcludeDefined refines the value of the given square, by excluding
-// any definite squares from the given group.
-func (sq Square) ExcludeDefined(group []Square) Square {
-	for _, other := range group {
-		if sq.IsDefined() {
-			break
-		}
-		if other.IsDefined() {
-			sq = sq &^ other
-		}
-	}
-	return sq
-}
-
-// Missing finds the set of values which are not possible in the given group.
-func Missing(group ...Square) Square {
-	notFound := none
-	for i := 1; i <= 9; i++ {
-		needle, found := squareEnum[i], false
-		for _, sq := range group {
-			if sq&needle > 0 {
-				found = true
-				break
-			}
-		}
-		if !found {
-			notFound |= needle
-		}
-	}
-	return notFound
-}

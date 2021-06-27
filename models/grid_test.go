@@ -41,19 +41,18 @@ var casesNewGrid = []struct {
 			two, four, eight, nine, five, seven, one, three, six,
 			seven, six, three, four, one, eight, two, five, nine,
 		},
-		display: `╔═══╤═══╤═══╗
-║435│269│781║
-║682│571│493║
-║197│834│562║
-╟───┼───┼───╢
-║826│195│347║
-║374│682│915║
-║951│743│628║
-╟───┼───┼───╢
-║519│326│874║
-║248│957│136║
-║763│418│259║
-╚═══╧═══╧═══╝`,
+		display: `435 269 781
+682 571 493
+197 834 562
+
+826 195 347
+374 682 915
+951 743 628
+
+519 326 874
+248 957 136
+763 418 259
+`,
 	},
 }
 
@@ -174,7 +173,7 @@ func TestRefineOne(t *testing.T) {
 			t.Parallel()
 			r := require.New(t)
 
-			tc.grid.excludeSquare(tc.n)
+			tc.grid.negateOthers(tc.n)
 
 			got := tc.grid.squares[tc.n]
 			r.Equal(tc.want, got)
@@ -185,7 +184,7 @@ func TestRefineOne(t *testing.T) {
 func BenchmarkRefineOne(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		for _, tc := range casesRefineOne {
-			tc.grid.excludeSquare(tc.n)
+			tc.grid.negateOthers(tc.n)
 		}
 	}
 }
@@ -260,7 +259,7 @@ func TestRefine(t *testing.T) {
 			numLoops := 0
 			for {
 				numChanges := 0
-				changes := grid.reduceByExclusion()
+				changes := grid.reduceByNegation()
 				numChanges += len(changes)
 				changes = grid.reduceByDeduction()
 				numChanges += len(changes)
@@ -322,7 +321,10 @@ func BenchmarkDeduceOne(b *testing.B) {
 func rebuildSquares(want [81][]int) *[81]Square {
 	w := [81]Square{}
 	for i, vals := range want {
-		w[i] = none.Include(vals...)
+		w[i] = none
+		for _, v := range vals {
+			w[i] |= squareEnum[v]
+		}
 	}
 	return &w
 }

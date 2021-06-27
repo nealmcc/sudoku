@@ -76,69 +76,6 @@ func TestSquareValues(t *testing.T) {
 	}
 }
 
-func TestSquareExclude(t *testing.T) {
-	tt := []struct {
-		name   string
-		in     Square
-		others []int
-		want   Square
-	}{
-		{
-			name:   "Not 4,5,6",
-			in:     any,
-			others: []int{4, 5, 6},
-			want:   one | two | three | seven | eight | nine,
-		},
-	}
-
-	for _, tc := range tt {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			r := require.New(t)
-
-			got := tc.in.Exclude(tc.others...)
-
-			r.Exactlyf(tc.want, got, "(%09b).Exclude(%v) ; got %09b ; want %09b",
-				tc.in, tc.others, got, tc.want)
-		})
-	}
-}
-
-func TestSquareInclude(t *testing.T) {
-	tt := []struct {
-		name   string
-		in     Square
-		others []int
-		want   Square
-	}{
-		{
-			name:   "None + 4,5,6",
-			in:     none,
-			others: []int{4, 5, 6},
-			want:   four | five | six,
-		}, {
-			name:   "None + 0",
-			in:     none,
-			others: []int{0},
-			want:   any,
-		},
-	}
-
-	for _, tc := range tt {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			r := require.New(t)
-
-			got := tc.in.Include(tc.others...)
-
-			r.Exactlyf(tc.want, got, "(%09b).Include(%v) ; got %09b ; want %09b",
-				tc.in, tc.others, got, tc.want)
-		})
-	}
-}
-
 func TestSquareIsSingle(t *testing.T) {
 	tt := []struct {
 		name string

@@ -45,43 +45,41 @@ func (g Grid) Clone() *Grid {
 // String implements the fmt.Stringer interface
 func (g Grid) String() string {
 	var b strings.Builder
-	b.WriteString("╔═══╤═══╤═══╗\n")
+
 	i := 0
 	for x := 0; x < 3; x++ {
 		writeRow(&b, g.squares[i:i+9])
 		b.WriteByte('\n')
 		i += 9
 	}
-	b.WriteString("╟───┼───┼───╢\n")
+	b.WriteByte('\n')
 	for x := 0; x < 3; x++ {
 		writeRow(&b, g.squares[i:i+9])
 		b.WriteByte('\n')
 		i += 9
 	}
-	b.WriteString("╟───┼───┼───╢\n")
+	b.WriteByte('\n')
 	for x := 0; x < 3; x++ {
 		writeRow(&b, g.squares[i:i+9])
 		b.WriteByte('\n')
 		i += 9
 	}
-	b.WriteString("╚═══╧═══╧═══╝")
+
 	return b.String()
 }
 
 func writeRow(b *strings.Builder, row []Square) {
-	b.WriteRune('║')
 	for i := 0; i < 3; i++ {
 		b.WriteByte(row[i].Display())
 	}
-	b.WriteRune('│')
+	b.WriteRune(' ')
 	for i := 3; i < 6; i++ {
 		b.WriteByte(row[i].Display())
 	}
-	b.WriteRune('│')
+	b.WriteRune(' ')
 	for i := 6; i < 9; i++ {
 		b.WriteByte(row[i].Display())
 	}
-	b.WriteRune('║')
 }
 
 // Get retrieves the current value of the square at index i
@@ -103,12 +101,12 @@ func (g Grid) Set(i, k int) {
 	g.squares[i] = squareEnum[k]
 }
 
-// Reduce applies logic to the grid, identifying possible and impossible
+// Reduce repeatedly applies  to the grid, identifying possible and impossible
 // values for each square.
 func (g Grid) Reduce() {
 	for {
 		delta := 0
-		ids := g.reduceByExclusion()
+		ids := g.reduceByNegation()
 		delta += len(ids)
 
 		ids = g.reduceByDeduction()
@@ -120,46 +118,43 @@ func (g Grid) Reduce() {
 	}
 }
 
-// reduceByExclusion performs one round of refinement based on the process of
-// exclusion.  That is, the process of excluding from each square the values
-// that are definitely assigned within the same row, column or block.
+// reduceByNegation performs one round of refinement based on the process of
+// set subtraction.  That is, the process of excluding from each square the
+// values that are definitely assigned within the same row, column or block.
 // Returns a list of squares that are now defined that weren't before.
-func (g Grid) reduceByExclusion() []int {
+func (g Grid) reduceByNegation() []int {
 	newlyDefined := make([]int, 0, 8)
 	for i := 0; i < 81; i++ {
 		if g.squares[i].IsDefined() {
 			continue
 		}
-		g.excludeSquare(i)
-		if g.squares[i].IsDefined() {
+		if g.negateOthers(i) {
 			newlyDefined = append(newlyDefined, i)
 		}
 	}
 	return newlyDefined
 }
 
-// excludeSquare the nth square for this grid, by excluding
-// values which would conflict with others in the same
-// row, column, or 3x3 block.
-// returns true if the square has been updated
-func (g Grid) excludeSquare(n int) bool {
+// negateOthers refines the the nth square for this grid by excluding values
+// which would conflict with others in the same row, column, or 3x3 block.
+// returns true if the is now defined and wasn't before.
+func (g Grid) negateOthers(n int) bool {
 	var (
-		start = g.squares[n]
-		row   = g.getRowSquares(n)
-		col   = g.getColSquares(n)
-		block = g.getBlockSquares(n)
+		row   = g.getRow(n)
+		col   = g.getCol(n)
+		block = g.getBlock(n)
 	)
-	sq := start.
+	sq := g.squares[n].
 		ExcludeDefined(row).
 		ExcludeDefined(col).
 		ExcludeDefined(block)
 	g.squares[n] = sq
-	return sq != start
+	return sq.IsDefined()
 }
 
 // reduceByDeduction performs one round of refinement based on the process of
-// deduction.  That is, the process of including to each square ONLY the values
-// that are definitely assigned within the same row, column or block.
+// deduction.  That is, the process of setting a square if it is the ONLY
+// square in its row/column/block which can have a particular value.
 // Returns a list of squares that are now defined that weren't before.
 func (g Grid) reduceByDeduction() []int {
 	newlyDefined := make([]int, 0, 8)
@@ -172,42 +167,43 @@ func (g Grid) reduceByDeduction() []int {
 	return newlyDefined
 }
 
-// deduceSquare is used to detect cases where no other square in the
-// row / column / group can possibly be a particular value.
-// returns true if the square has been updated
+// deduceSquare is used to detect cases where there is some value that
+// no other square in the row / column / block can possibly be.
+// Returns true if the square is now defined and wasn't before.
 func (g Grid) deduceSquare(n int) bool {
 	if g.squares[n].IsDefined() {
 		return false
 	}
 	var (
-		start = g.squares[n]
-		row   = g.getRowSquares(n)
-		col   = g.getColSquares(n)
-		block = g.getBlockSquares(n)
+		row   = g.getRow(n)
+		col   = g.getCol(n)
+		block = g.getBlock(n)
 	)
-	found := start
-	rowMissing := Missing(row)
-	if rowMissing != none {
-		found = Intersect(found, rowMissing)
+
+	need := Missing(row...)
+	if need.IsDefined() {
+		g.squares[n] = need
+		return true
 	}
-	colMissing := Missing(col)
-	if colMissing != none {
-		found = Intersect(found, colMissing)
+
+	need = Missing(col...)
+	if need.IsDefined() {
+		g.squares[n] = need
+		return true
 	}
-	blockMissing := Missing(block)
-	if blockMissing != none {
-		found = Intersect(found, blockMissing)
+
+	need = Missing(block...)
+	if need.IsDefined() {
+		g.squares[n] = need
+		return true
 	}
-	if !found.IsDefined() {
-		return false
-	}
-	g.squares[n] = found
-	return true
+
+	return false
 }
 
-// getOtherRowSquares is used to get the other squares from the same row
-// as the square at n. Excludes square n from the list.
-func (g Grid) getRowSquares(n int) []Square {
+// getRow gets the other squares from the same row as the square at index n.
+// Excludes square n from the list.
+func (g Grid) getRow(n int) []Square {
 	row := make([]Square, 8)
 	j := 0
 	start := (n / 9) * 9
@@ -221,9 +217,9 @@ func (g Grid) getRowSquares(n int) []Square {
 	return row
 }
 
-// getOtherColSquares is used to get the other squares from the same column
-// as the square at n. Excludes square n from the list.
-func (g Grid) getColSquares(n int) []Square {
+// getCol gets the other squares from the same column as the square at index n.
+// Excludes square n from the list.
+func (g Grid) getCol(n int) []Square {
 	col := make([]Square, 8)
 	j := 0
 	start := n % 9
@@ -237,9 +233,9 @@ func (g Grid) getColSquares(n int) []Square {
 	return col
 }
 
-// getOtherBlockSquares is used to get the other squares from the same
-// 3x3 block as the square at n. Excludes square n from the list.
-func (g Grid) getBlockSquares(n int) []Square {
+// getBlock gets the other squares from the same 3x3 block as the square at n.
+// Excludes square n from the list.
+func (g Grid) getBlock(n int) []Square {
 	// r0, c0 is the top left corner of this 3x3 block:
 	r0, c0 := (n/27)*27, ((n%9)/3)*3
 	block := make([]Square, 8)
